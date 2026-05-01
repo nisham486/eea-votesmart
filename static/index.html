@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoteSmart — Election Education Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d0d0d; --paper: #f5f0e8; --cream: #fffdf7;
+    --red: #c0392b; --red-light: #e74c3c;
+    --blue: #1a3a5c; --blue-mid: #2c5282;
+    --gold: #c9933a; --gold-light: #f0b429;
+    --green: #1a6b3c; --mid: #6b6560;
+    --border: #d4cfc5; --shadow: rgba(13,13,13,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:var(--paper); color:var(--ink); min-height:100vh; overflow-x:hidden; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: radial-gradient(ellipse at 20% 10%,rgba(192,57,43,0.06) 0%,transparent 50%), radial-gradient(ellipse at 80% 90%,rgba(26,58,92,0.06) 0%,transparent 50%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* ── SIGN-IN ── */
+  #signin-page { min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; padding:20px; }
+  .signin-container { background:var(--cream); border:2px solid var(--border); border-radius:4px; box-shadow:8px 8px 0 var(--ink),0 20px 60px var(--shadow); width:100%; max-width:480px; overflow:hidden; animation:slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+  .signin-header { background:var(--ink); color:var(--paper); padding:36px 40px 28px; position:relative; overflow:hidden; }
+  .signin-header::after { content:'🗳'; position:absolute; right:-10px; top:-10px; font-size:120px; opacity:0.07; line-height:1; }
+  .brand-tag { display:inline-flex; align-items:center; gap:6px; background:var(--red); color:#fff; font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; padding:4px 10px; border-radius:2px; margin-bottom:16px; }
+  .signin-header h1 { font-family:'Playfair Display',serif; font-size:38px; font-weight:900; line-height:1.1; margin-bottom:8px; }
+  .signin-header p { color:rgba(245,240,232,0.6); font-size:14px; font-weight:300; }
+  .signin-body { padding:36px 40px 40px; }
+  .tab-row { display:flex; border:1.5px solid var(--border); border-radius:3px; overflow:hidden; margin-bottom:28px; }
+  .tab-btn { flex:1; padding:10px; background:none; border:none; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; color:var(--mid); cursor:pointer; transition:all 0.2s; }
+  .tab-btn.active { background:var(--ink); color:var(--paper); }
+  .form-group { margin-bottom:18px; }
+  .form-group label { display:block; font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--mid); margin-bottom:6px; }
+  .form-group input, .form-group select { width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:3px; font-family:'DM Sans',sans-serif; font-size:14px; background:var(--paper); color:var(--ink); transition:border-color 0.2s,box-shadow 0.2s; outline:none; }
+  .form-group input:focus, .form-group select:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(26,58,92,0.1); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .submit-btn { width:100%; padding:14px; background:var(--ink); color:var(--paper); border:none; border-radius:3px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; margin-top:8px; position:relative; overflow:hidden; }
+  .submit-btn::before { content:''; position:absolute; inset:0; background:var(--red); transform:translateX(-100%); transition:transform 0.3s ease; }
+  .submit-btn:hover::before { transform:translateX(0); }
+  .submit-btn span { position:relative; z-index:1; }
+  .submit-btn:disabled { opacity:0.6; cursor:not-allowed; }
+  .divider { display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--mid); font-size:12px; }
+  .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .guest-btn { width:100%; padding:12px; background:none; border:1.5px solid var(--border); border-radius:3px; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--mid); cursor:pointer; transition:all 0.2s; }
+  .guest-btn:hover { border-color:var(--ink); color:var(--ink); }
+  .error-msg { background:rgba(192,57,43,0.1); border-left:3px solid var(--red); padding:10px 14px; font-size:13px; color:var(--red); border-radius:0 3px 3px 0; margin-bottom:16px; display:none; }
+  .success-msg { background:rgba(26,107,60,0.1); border-left:3px solid var(--green); padding:10px 14px; font-size:13px; color:var(--green); border-radius:0 3px 3px 0; margin-bottom:16px; display:none; }
+
+  /* ── APP ── */
+  #app-page { display:none; min-height:100vh; position:relative; z-index:1; }
+  .topnav { background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:space-between; padding:0 32px; height:60px; position:sticky; top:0; z-index:100; box-shadow:0 2px 20px rgba(0,0,0,0.3); }
+  .nav-brand { display:flex; align-items:center; gap:10px; font-family:'Playfair Display',serif; font-size:22px; font-weight:700; }
+  .nav-brand .dot { width:10px; height:10px; border-radius:50%; background:var(--red); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.3);opacity:0.7} }
+  .nav-links { display:flex; gap:4px; }
+  .nav-link { padding:6px 14px; background:none; border:none; color:rgba(245,240,232,0.6); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; border-radius:3px; transition:all 0.2s; font-weight:500; }
+  .nav-link:hover,.nav-link.active { background:rgba(255,255,255,0.1); color:var(--paper); }
+  .nav-link.active { background:var(--red); color:#fff; }
+  .nav-user { display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(245,240,232,0.7); }
+  .avatar { width:32px; height:32px; border-radius:50%; background:var(--gold); color:var(--ink); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+  .logout-btn { padding:5px 12px; background:none; border:1px solid rgba(255,255,255,0.2); border-radius:3px; color:rgba(245,240,232,0.6); font-size:12px; cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif; }
+  .logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+  .app-layout { display:grid; grid-template-columns:260px 1fr; min-height:calc(100vh - 60px); }
+  .sidebar { background:var(--cream); border-right:1.5px solid var(--border); padding:24px 0; position:sticky; top:60px; height:calc(100vh - 60px); overflow-y:auto; }
+  .sidebar-label { font-size:10px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--mid); padding:4px 20px 8px; }
+  .sidebar-item { display:flex; align-items:center; gap:10px; padding:10px 20px; cursor:pointer; transition:all 0.15s; font-size:14px; color:var(--ink); border-left:3px solid transparent; }
+  .sidebar-item:hover { background:rgba(0,0,0,0.04); }
+  .sidebar-item.active { background:rgba(192,57,43,0.08); border-left-color:var(--red); color:var(--red); font-weight:600; }
+  .sidebar-icon { font-size:16px; width:20px; text-align:center; }
+  .sidebar-badge { margin-left:auto; background:var(--red); color:#fff; font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; }
+  .progress-card { margin:20px 16px 0; background:var(--ink); color:var(--paper); border-radius:4px; padding:16px; }
+  .progress-card h4 { font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; color:var(--gold-light); }
+  .progress-bar-wrap { background:rgba(255,255,255,0.1); border-radius:10px; height:6px; margin-bottom:6px; overflow:hidden; }
+  .progress-bar-fill { height:100%; background:var(--gold-light); border-radius:10px; transition:width 0.5s ease; }
+  .progress-label { font-size:11px; color:rgba(245,240,232,0.5); }
+
+  .main-content { padding:32px; overflow-y:auto; }
+  .view { display:none; animation:fadeIn 0.3s ease; }
+  .view.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  .page-header { margin-bottom:28px; }
+  .page-header h2 { font-family:'Playfair Display',serif; font-size:32px; font-weight:900; line-height:1.2; margin-bottom:6px; }
+  .page-header p { color:var(--mid); font-size:15px; }
+  .breadcrumb { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--mid); margin-bottom:12px; }
+
+  /* ── DASHBOARD ── */
+  .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card { background:var(--cream); border:1.5px solid var(--border); border-radius:4px; padding:20px; position:relative; overflow:hidden; transition:transform 0.2s,box-shadow 0.2s; }
+  .stat-card:hover { transform:translateY(-2px); box-shadow:4px 4px 0 var(--ink); }
+  .stat-card .accent-bar { position:absolute; top:0; left:0; right:0; height:3px; }
+  .stat-card .stat-icon { font-size:28px; margin-bottom:10px; }
+  .stat-card .stat-value { font-family:'Playfair Display',serif; font-size:36px; font-weight:900; line-height:1; margin-bottom:4px; }
+  .stat-card .stat-label { font-size:12px; color:var(--mid); font-weight:500; }
+  .dashboard-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .card { background:var(--cream); border:1.5px solid var(--border); border-radius:4px; overflow:hidden; }
+  .card-header { padding:16px 20px; border-bottom:1.5px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .card-header h3 { font-family:'Playfair Display',serif; font-size:17px; font-weight:700; }
+  .card-body { padding:16px 20px; }
+  .news-item { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer; transition:all 0.15s; }
+  .news-item:last-child { border-bottom:none; }
+  .news-item:hover { opacity:0.75; }
+  .news-dot { width:8px; height:8px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+  .news-item h4 { font-size:13px; font-weight:600; margin-bottom:3px; line-height:1.4; }
+  .news-item p { font-size:11px; color:var(--mid); }
+  .timeline-item { display:flex; gap:14px; padding:8px 0; }
+  .timeline-dot { width:28px; height:28px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; background:var(--cream); }
+  .timeline-dot.done { background:var(--green); border-color:var(--green); color:#fff; }
+  .timeline-dot.current { background:var(--red); border-color:var(--red); color:#fff; animation:pulse 2s infinite; }
+  .timeline-text h4 { font-size:13px; font-weight:600; }
+  .timeline-text p { font-size:11px; color:var(--mid); }
+
+  /* ── CHAT ── */
+  .chat-container { display:flex; flex-direction:column; height:calc(100vh - 200px); background:var(--cream); border:1.5px solid var(--border); border-radius:4px; overflow:hidden; }
+  .chat-header { padding:16px 20px; border-bottom:1.5px solid var(--border); display:flex; align-items:center; gap:12px; background:var(--ink); color:var(--paper); }
+  .ai-avatar { width:36px; height:36px; border-radius:50%; background:var(--gold); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .chat-header-text h3 { font-size:15px; font-weight:600; }
+  .chat-header-text p { font-size:11px; color:rgba(245,240,232,0.5); }
+  .online-dot { width:8px; height:8px; border-radius:50%; background:#2ecc71; margin-left:auto; animation:pulse 2s infinite; }
+  .chat-messages { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; scroll-behavior:smooth; }
+  .message { display:flex; gap:10px; max-width:80%; }
+  .message.user { align-self:flex-end; flex-direction:row-reverse; }
+  .msg-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; margin-top:2px; }
+  .msg-avatar.ai { background:var(--blue); color:#fff; }
+  .msg-avatar.user { background:var(--gold); color:var(--ink); }
+  .msg-bubble { padding:12px 16px; border-radius:3px; font-size:14px; line-height:1.6; }
+  .message.ai .msg-bubble { background:var(--cream); border:1.5px solid var(--border); border-radius:0 12px 12px 12px; color:var(--ink); }
+  .message.user .msg-bubble { background:var(--blue); color:#fff; border-radius:12px 0 12px 12px; }
+  .msg-time { font-size:10px; color:var(--mid); margin-top:4px; }
+  .typing-indicator { display:flex; gap:4px; padding:4px 0; }
+  .typing-dot { width:6px; height:6px; border-radius:50%; background:var(--mid); animation:typingBounce 1.2s infinite; }
+  .typing-dot:nth-child(2){animation-delay:0.2s} .typing-dot:nth-child(3){animation-delay:0.4s}
+  @keyframes typingBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+  .quick-prompts { padding:12px 20px; border-top:1.5px solid var(--border); display:flex; gap:8px; flex-wrap:wrap; background:rgba(245,240,232,0.5); }
+  .quick-btn { padding:6px 12px; background:var(--paper); border:1.5px solid var(--border); border-radius:20px; font-size:12px; cursor:pointer; transition:all 0.15s; font-family:'DM Sans',sans-serif; color:var(--ink); white-space:nowrap; }
+  .quick-btn:hover { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .chat-input-area { display:flex; gap:10px; padding:16px 20px; border-top:1.5px solid var(--border); background:var(--paper); }
+  .chat-input { flex:1; padding:12px 16px; border:1.5px solid var(--border); border-radius:3px; font-family:'DM Sans',sans-serif; font-size:14px; background:var(--cream); color:var(--ink); outline:none; resize:none; transition:border-color 0.2s; min-height:44px; max-height:120px; }
+  .chat-input:focus { border-color:var(--blue); }
+  .send-btn { padding:12px 20px; background:var(--red); color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:18px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; min-width:50px; }
+  .send-btn:hover { background:var(--ink); }
+  .send-btn:disabled { background:var(--border); cursor:not-allowed; }
+
+  /* ── QUIZ ── */
+  .quiz-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .quiz-card { background:var(--cream); border:1.5px solid var(--border); border-radius:4px; padding:24px; cursor:pointer; transition:all 0.2s; }
+  .quiz-card:hover { transform:translateY(-2px); box-shadow:4px 4px 0 var(--ink); }
+  .level-badge { display:inline-block; font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; padding:3px 8px; border-radius:2px; margin-bottom:12px; }
+  .level-beginner { background:rgba(26,107,60,0.1); color:var(--green); }
+  .level-intermediate { background:rgba(201,147,58,0.1); color:var(--gold); }
+  .level-advanced { background:rgba(192,57,43,0.1); color:var(--red); }
+  .quiz-card h3 { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:8px; }
+  .quiz-card p { font-size:13px; color:var(--mid); margin-bottom:16px; }
+  .quiz-meta { display:flex; gap:14px; font-size:12px; color:var(--mid); }
+  #active-quiz { display:none; }
+  .quiz-progress-bar { height:4px; background:var(--border); border-radius:10px; margin-bottom:24px; overflow:hidden; }
+  .quiz-progress-fill { height:100%; background:var(--blue); border-radius:10px; transition:width 0.4s ease; }
+  .question-card { background:var(--cream); border:1.5px solid var(--border); border-radius:4px; padding:28px; margin-bottom:16px; }
+  .q-number { font-size:12px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--mid); margin-bottom:10px; }
+  .q-text { font-family:'Playfair Display',serif; font-size:20px; line-height:1.4; margin-bottom:20px; }
+  .options-list { display:flex; flex-direction:column; gap:10px; }
+  .option-btn { padding:14px 18px; border:1.5px solid var(--border); border-radius:3px; background:var(--paper); font-family:'DM Sans',sans-serif; font-size:14px; text-align:left; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:12px; color:var(--ink); }
+  .option-btn:hover:not(:disabled) { border-color:var(--blue); background:rgba(26,58,92,0.05); }
+  .option-btn.correct { border-color:var(--green); background:rgba(26,107,60,0.08); color:var(--green); }
+  .option-btn.wrong { border-color:var(--red); background:rgba(192,57,43,0.08); color:var(--red); }
+  .option-btn .opt-letter { width:26px; height:26px; border-radius:50%; border:1.5px solid currentColor; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+  .explanation-box { padding:14px 18px; border-radius:3px; font-size:13px; line-height:1.6; margin-top:12px; display:none; }
+  .explanation-box.show { display:block; }
+  .explanation-box.correct-exp { background:rgba(26,107,60,0.08); border-left:3px solid var(--green); color:var(--green); }
+  .explanation-box.wrong-exp { background:rgba(192,57,43,0.08); border-left:3px solid var(--red); color:var(--red); }
+  .quiz-controls { display:flex; justify-content:space-between; align-items:center; }
+  .btn-primary { padding:12px 24px; background:var(--ink); color:var(--paper); border:none; border-radius:3px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .btn-primary:hover { background:var(--blue); }
+  .btn-secondary { padding:12px 24px; background:none; color:var(--mid); border:1.5px solid var(--border); border-radius:3px; font-family:'DM Sans',sans-serif; font-size:14px; cursor:pointer; transition:all 0.2s; }
+  .btn-secondary:hover { border-color:var(--ink); color:var(--ink); }
+  .quiz-result { text-align:center; padding:40px; background:var(--cream); border:1.5px solid var(--border); border-radius:4px; display:none; }
+  .result-score { font-family:'Playfair Display',serif; font-size:80px; font-weight:900; line-height:1; margin:16px 0 8px; }
+
+  /* ── LEADERBOARD ── */
+  .leaderboard-table { width:100%; border-collapse:collapse; }
+  .leaderboard-table th { text-align:left; padding:10px 14px; font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--mid); border-bottom:2px solid var(--border); }
+  .leaderboard-table td { padding:12px 14px; font-size:14px; border-bottom:1px solid var(--border); }
+  .leaderboard-table tr:hover td { background:rgba(0,0,0,0.02); }
+  .rank-badge { width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .rank-1 { background:var(--gold-light); color:var(--ink); }
+  .rank-2 { background:#b0b0b0; color:#fff; }
+  .rank-3 { background:#cd7f32; color:#fff; }
+
+  /* ── GLOSSARY ── */
+  .glossary-search { display:flex; gap:12px; margin-bottom:24px; }
+  .search-input { flex:1; padding:12px 16px; border:1.5px solid var(--border); border-radius:3px; font-family:'DM Sans',sans-serif; font-size:14px; background:var(--cream); outline:none; transition:border-color 0.2s; color:var(--ink); }
+  .search-input:focus { border-color:var(--blue); }
+  .letter-filter { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:20px; }
+  .letter-btn { width:32px; height:32px; border:1.5px solid var(--border); border-radius:3px; background:var(--paper); font-family:'DM Mono',monospace; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.15s; color:var(--ink); }
+  .letter-btn:hover,.letter-btn.active { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .glossary-list { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .glossary-item { background:var(--cream); border:1.5px solid var(--border); border-radius:4px; padding:16px; transition:all 0.15s; cursor:pointer; }
+  .glossary-item:hover { border-color:var(--blue); transform:translateY(-1px); }
+  .glossary-item h4 { font-size:15px; font-weight:600; margin-bottom:6px; }
+  .glossary-item p { font-size:13px; color:var(--mid); line-height:1.5; }
+  .term-category { display:inline-block; font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; padding:2px 7px; border-radius:2px; margin-bottom:8px; background:rgba(26,58,92,0.1); color:var(--blue-mid); }
+
+  /* ── VOTER GUIDE ── */
+  .guide-steps { display:flex; flex-direction:column; gap:16px; }
+  .guide-step { display:flex; gap:20px; background:var(--cream); border:1.5px solid var(--border); border-radius:4px; padding:24px; transition:all 0.2s; }
+  .guide-step:hover { border-color:var(--blue); }
+  .step-num { width:44px; height:44px; border-radius:50%; background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-size:20px; font-weight:900; flex-shrink:0; }
+  .step-content h3 { font-family:'Playfair Display',serif; font-size:18px; margin-bottom:6px; }
+  .step-content p { font-size:13px; color:var(--mid); line-height:1.6; }
+  .step-tag { display:inline-block; margin-top:10px; font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; background:rgba(26,107,60,0.1); color:var(--green); }
+
+  /* ── MISC ── */
+  .hidden { display:none !important; }
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
+  .spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--ink); color:var(--paper); padding:12px 20px; border-radius:3px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,0.3); z-index:999; transform:translateY(100px); transition:transform 0.3s ease; }
+  .toast.show { transform:translateY(0); }
+  .api-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(26,107,60,0.1); color:var(--green); font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; margin-left:10px; }
+  @media(max-width:768px) { .app-layout{grid-template-columns:1fr} .sidebar{display:none} .stats-grid{grid-template-columns:1fr} .dashboard-grid{grid-template-columns:1fr} .quiz-grid{grid-template-columns:1fr} .glossary-list{grid-template-columns:1fr} .topnav{padding:0 16px} .nav-links{display:none} .main-content{padding:20px} }
+</style>
+</head>
+<body>
+
+<!-- ══ SIGN-IN PAGE ══ -->
+<div id="signin-page">
+  <div class="signin-container">
+    <div class="signin-header">
+      <div class="brand-tag">🗳 Civic Education Platform</div>
+      <h1>VoteSmart</h1>
+      <p>Learn how democracy works — one vote at a time.</p>
+    </div>
+    <div class="signin-body">
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn" onclick="switchTab('register')">Create Account</button>
+      </div>
+      <div id="error-display" class="error-msg"></div>
+      <div id="success-display" class="success-msg"></div>
+
+      <!-- LOGIN -->
+      <div id="login-form">
+        <div class="form-group"><label>Email Address</label><input type="email" id="login-email" placeholder="demo@votesmart.edu"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"></div>
+        <button class="submit-btn" id="login-btn" onclick="handleLogin()"><span>Sign In to VoteSmart →</span></button>
+        <p style="font-size:11px;color:var(--mid);margin-top:10px;text-align:center;">Demo: demo@votesmart.edu / demo123</p>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="register-form" class="hidden">
+        <div class="form-row">
+          <div class="form-group"><label>First Name</label><input type="text" id="reg-first" placeholder="Jane"></div>
+          <div class="form-group"><label>Last Name</label><input type="text" id="reg-last" placeholder="Doe"></div>
+        </div>
+        <div class="form-group"><label>Email Address</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min. 6 characters"></div>
+        <div class="form-group">
+          <label>I am a</label>
+          <select id="reg-role">
+            <option value="student">Student</option>
+            <option value="educator">Educator / Teacher</option>
+            <option value="citizen">Citizen / First-Time Voter</option>
+            <option value="researcher">Researcher</option>
+          </select>
+        </div>
+        <button class="submit-btn" id="register-btn" onclick="handleRegister()"><span>Create My Account →</span></button>
+      </div>
+
+      <div class="divider">or continue without an account</div>
+      <button class="guest-btn" onclick="enterAsGuest()">👤 Continue as Guest</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app-page">
+  <nav class="topnav">
+    <div class="nav-brand"><div class="dot"></div>VoteSmart <span class="api-badge">🟢 Live Backend</span></div>
+    <div class="nav-links">
+      <button class="nav-link active" onclick="showView('dashboard')">Dashboard</button>
+      <button class="nav-link" onclick="showView('assistant')">AI Assistant</button>
+      <button class="nav-link" onclick="showView('quiz')">Quiz</button>
+      <button class="nav-link" onclick="showView('leaderboard')">Leaderboard</button>
+      <button class="nav-link" onclick="showView('glossary')">Glossary</button>
+      <button class="nav-link" onclick="showView('guide')">Voter Guide</button>
+    </div>
+    <div class="nav-user">
+      <div class="avatar" id="user-avatar">U</div>
+      <span id="user-name-display">User</span>
+      <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main Menu</div>
+        <div class="sidebar-item active" onclick="showView('dashboard')"><span class="sidebar-icon">🏛</span> Dashboard</div>
+        <div class="sidebar-item" onclick="showView('assistant')"><span class="sidebar-icon">🤖</span> AI Assistant <span class="sidebar-badge">AI</span></div>
+        <div class="sidebar-item" onclick="showView('quiz')"><span class="sidebar-icon">📝</span> Take a Quiz</div>
+        <div class="sidebar-item" onclick="showView('leaderboard')"><span class="sidebar-icon">🏆</span> Leaderboard</div>
+        <div class="sidebar-item" onclick="showView('glossary')"><span class="sidebar-icon">📖</span> Glossary</div>
+        <div class="sidebar-item" onclick="showView('guide')"><span class="sidebar-icon">🗺</span> Voter Guide</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Quick Ask</div>
+        <div class="sidebar-item" onclick="quickAsk('How does the Electoral College work?')"><span class="sidebar-icon">🏛</span> Electoral College</div>
+        <div class="sidebar-item" onclick="quickAsk('How do I register to vote?')"><span class="sidebar-icon">✅</span> Voter Registration</div>
+        <div class="sidebar-item" onclick="quickAsk('What are the different types of elections?')"><span class="sidebar-icon">🗳</span> Types of Elections</div>
+        <div class="sidebar-item" onclick="quickAsk('What is gerrymandering?')"><span class="sidebar-icon">🗺</span> Gerrymandering</div>
+      </div>
+      <div class="progress-card">
+        <h4>Your Progress</h4>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="progress-label">Loading...</div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+
+      <!-- DASHBOARD -->
+      <div class="view active" id="view-dashboard">
+        <div class="page-header">
+          <h2>Welcome back, <span id="welcome-name">Learner</span>! 👋</h2>
+          <p>Your civic education journey continues. Here's where you stand.</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="accent-bar" style="background:var(--red)"></div><div class="stat-icon">📝</div><div class="stat-value" id="stat-quizzes">0</div><div class="stat-label">Quizzes Completed</div></div>
+          <div class="stat-card"><div class="accent-bar" style="background:var(--blue)"></div><div class="stat-icon">💬</div><div class="stat-value" id="stat-chats">0</div><div class="stat-label">AI Conversations</div></div>
+          <div class="stat-card"><div class="accent-bar" style="background:var(--gold)"></div><div class="stat-icon">🏆</div><div class="stat-value" id="stat-score">—</div><div class="stat-label">Best Quiz Score</div></div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header"><h3>📰 Election Topics</h3></div>
+            <div class="card-body">
+              <div class="news-item" onclick="quickAsk('How do primaries and caucuses differ?')"><div class="news-dot" style="background:var(--red)"></div><div><h4>How Primaries & Caucuses Differ</h4><p>Understanding party nomination processes</p></div></div>
+              <div class="news-item" onclick="quickAsk('Explain the Electoral College in detail')"><div class="news-dot" style="background:var(--blue)"></div><div><h4>The Role of the Electoral College</h4><p>America's unique presidential election system</p></div></div>
+              <div class="news-item" onclick="quickAsk('How does ranked choice voting work?')"><div class="news-dot" style="background:var(--gold)"></div><div><h4>Ranked Choice Voting Explained</h4><p>Alternative voting methods gaining momentum</p></div></div>
+              <div class="news-item" onclick="quickAsk('What are voter ID laws and how do they vary by state?')"><div class="news-dot" style="background:var(--green)"></div><div><h4>Voter ID Laws: State by State</h4><p>What you need to know before election day</p></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>🗓 Election Process Timeline</h3></div>
+            <div class="card-body">
+              <div class="timeline-item"><div class="timeline-dot done">✓</div><div class="timeline-text"><h4>Candidate Announcement</h4><p>Candidates declare their intent to run</p></div></div>
+              <div class="timeline-item"><div class="timeline-dot done">✓</div><div class="timeline-text"><h4>Primary Elections & Caucuses</h4><p>Party nominees are selected</p></div></div>
+              <div class="timeline-item"><div class="timeline-dot current">→</div><div class="timeline-text"><h4>General Election Campaign</h4><p>Nominees campaign across the country</p></div></div>
+              <div class="timeline-item"><div class="timeline-dot">4</div><div class="timeline-text"><h4>Election Day & Voting</h4><p>Citizens cast their ballots</p></div></div>
+              <div class="timeline-item"><div class="timeline-dot">5</div><div class="timeline-text"><h4>Electoral College & Certification</h4><p>Official results are certified</p></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI ASSISTANT -->
+      <div class="view" id="view-assistant">
+        <div class="page-header">
+          <div class="breadcrumb">Home › AI Assistant</div>
+          <h2>Election AI Assistant 🤖</h2>
+          <p>Ask any question about elections, voting rights, democracy, or civic processes.</p>
+        </div>
+        <div class="chat-container">
+          <div class="chat-header">
+            <div class="ai-avatar">🏛</div>
+            <div class="chat-header-text"><h3>CivicBot — Election Expert</h3><p>Python Backend · SQLite Database · Real-time Responses</p></div>
+            <div class="online-dot"></div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="message ai">
+              <div class="msg-avatar ai">🏛</div>
+              <div>
+                <div class="msg-bubble">Hello! 👋 I'm <strong>CivicBot</strong>, your AI guide to elections and democracy!<br><br>I can help you understand voter registration, the Electoral College, voting rights history, how Congress works, campaign finance, and much more.<br><br>What would you like to learn today?</div>
+                <div class="msg-time">Just now</div>
+              </div>
+            </div>
+          </div>
+          <div class="quick-prompts">
+            <button class="quick-btn" onclick="sendMessage('How do I register to vote?')">How to register?</button>
+            <button class="quick-btn" onclick="sendMessage('Explain the Electoral College')">Electoral College</button>
+            <button class="quick-btn" onclick="sendMessage('What is gerrymandering?')">Gerrymandering</button>
+            <button class="quick-btn" onclick="sendMessage('Difference between primary and general election')">Primary vs General</button>
+            <button class="quick-btn" onclick="sendMessage('What are voting rights in America?')">Voting Rights</button>
+            <button class="quick-btn" onclick="sendMessage('How does ranked choice voting work?')">Ranked Choice Voting</button>
+          </div>
+          <div class="chat-input-area">
+            <textarea class="chat-input" id="chat-input" placeholder="Ask about elections, voting, democracy..." rows="1"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+              oninput="autoResize(this)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUIZ -->
+      <div class="view" id="view-quiz">
+        <div class="page-header"><div class="breadcrumb">Home › Quiz</div><h2>Test Your Knowledge 📝</h2><p>Challenge yourself and earn points saved to the leaderboard!</p></div>
+        <div id="quiz-select">
+          <div class="quiz-grid">
+            <div class="quiz-card" onclick="startQuiz('basics')"><div class="level-badge level-beginner">Beginner</div><h3>Election Basics</h3><p>Fundamental concepts of how elections work.</p><div class="quiz-meta"><span>📝 10 questions</span><span>🏆 100 pts</span></div></div>
+            <div class="quiz-card" onclick="startQuiz('process')"><div class="level-badge level-intermediate">Intermediate</div><h3>The Voting Process</h3><p>Registration, ballot types, and administration.</p><div class="quiz-meta"><span>📝 10 questions</span><span>🏆 150 pts</span></div></div>
+            <div class="quiz-card" onclick="startQuiz('history')"><div class="level-badge level-intermediate">Intermediate</div><h3>Election History</h3><p>Landmark elections and voting rights history.</p><div class="quiz-meta"><span>📝 10 questions</span><span>🏆 150 pts</span></div></div>
+            <div class="quiz-card" onclick="startQuiz('advanced')"><div class="level-badge level-advanced">Advanced</div><h3>Advanced Civics</h3><p>Electoral College, gerrymandering, campaign finance.</p><div class="quiz-meta"><span>📝 10 questions</span><span>🏆 200 pts</span></div></div>
+          </div>
+        </div>
+        <div id="active-quiz">
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-progress-fill" style="width:0%"></div></div>
+          <div class="question-card">
+            <div class="q-number" id="q-number">Question 1 of 10</div>
+            <div class="q-text" id="q-text"></div>
+            <div class="options-list" id="options-list"></div>
+            <div class="explanation-box" id="explanation-box"></div>
+          </div>
+          <div class="quiz-controls">
+            <button class="btn-secondary" onclick="quitQuiz()">← Back to Quizzes</button>
+            <button class="btn-primary" id="next-btn" onclick="nextQuestion()" style="display:none">Next Question →</button>
+          </div>
+        </div>
+        <div class="quiz-result" id="quiz-result">
+          <div style="font-size:48px" id="result-emoji">🏆</div>
+          <div class="result-score" id="result-score">0/10</div>
+          <p id="result-msg" style="font-size:16px;color:var(--mid);margin-bottom:24px"></p>
+          <div style="display:flex;gap:12px;justify-content:center">
+            <button class="btn-primary" onclick="restartQuiz()">Try Again</button>
+            <button class="btn-secondary" onclick="quitQuiz()">Choose Another</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div class="view" id="view-leaderboard">
+        <div class="page-header"><div class="breadcrumb">Home › Leaderboard</div><h2>Top Civic Learners 🏆</h2><p>Real-time rankings saved to the Python backend database.</p></div>
+        <div class="card">
+          <div class="card-header"><h3>🏅 All-Time Rankings</h3><button class="btn-secondary" style="padding:6px 14px;font-size:12px" onclick="loadLeaderboard()">↻ Refresh</button></div>
+          <div class="card-body" id="leaderboard-body">
+            <p style="color:var(--mid);text-align:center;padding:20px">Loading leaderboard...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOSSARY -->
+      <div class="view" id="view-glossary">
+        <div class="page-header"><div class="breadcrumb">Home › Glossary</div><h2>Election Glossary 📖</h2><p>Comprehensive definitions of civic and electoral terms.</p></div>
+        <div class="glossary-search"><input class="search-input" type="text" id="glossary-search" placeholder="Search terms..." oninput="filterGlossary()"></div>
+        <div class="letter-filter" id="letter-filter"></div>
+        <div class="glossary-list" id="glossary-list"></div>
+      </div>
+
+      <!-- VOTER GUIDE -->
+      <div class="view" id="view-guide">
+        <div class="page-header"><div class="breadcrumb">Home › Voter Guide</div><h2>First-Time Voter Guide 🗺</h2><p>Everything you need to cast your first ballot with confidence.</p></div>
+        <div class="guide-steps">
+          <div class="guide-step"><div class="step-num">1</div><div class="step-content"><h3>Check Your Eligibility</h3><p>U.S. citizen, at least 18 on Election Day, meet residency requirements. Felony rules vary by state.</p><span class="step-tag">✓ First-time voter essential</span></div></div>
+          <div class="guide-step"><div class="step-num">2</div><div class="step-content"><h3>Register to Vote</h3><p>Register at vote.gov online, by mail, or in person at your DMV. Deadline is usually 15–30 days before election day.</p><span class="step-tag">✓ Required in most states</span></div></div>
+          <div class="guide-step"><div class="step-num">3</div><div class="step-content"><h3>Understand Your Ballot</h3><p>Research candidates and ballot measures. Voter guides are published by your local election office and nonprofits.</p><span class="step-tag">✓ Prepare in advance</span></div></div>
+          <div class="guide-step"><div class="step-num">4</div><div class="step-content"><h3>Choose How to Vote</h3><p>In-person on Election Day, early voting (1–2 weeks before), or by mail/absentee. Rules vary by state.</p><span class="step-tag">✓ Multiple options available</span></div></div>
+          <div class="guide-step"><div class="step-num">5</div><div class="step-content"><h3>Know What to Bring</h3><p>ID requirements vary by state. Check your state's requirements at vote.gov before heading to the polls.</p><span class="step-tag">✓ ID laws vary by state</span></div></div>
+          <div class="guide-step"><div class="step-num">6</div><div class="step-content"><h3>Cast Your Ballot</h3><p>Polls are typically open 6 AM–8 PM. If you're in line when polls close, you have the right to vote.</p><span class="step-tag">✓ Your vote is your voice</span></div></div>
+          <div class="guide-step"><div class="step-num">7</div><div class="step-content"><h3>After Election Day</h3><p>Track your mail ballot online. For problems, call Election Protection: 1-866-OUR-VOTE.</p><span class="step-tag">✓ Track your vote</span></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIGURATION — Change this to your server URL
+// ══════════════════════════════════════════════
+const API_BASE = 'http://localhost:8000';
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const state = {
+  token: localStorage.getItem('vs_token') || null,
+  user: null,
+  activeQuizKey: null,
+  currentQuestion: 0,
+  quizCorrect: 0,
+};
+
+// ══════════════════════════════════════════════
+// API HELPER
+// ══════════════════════════════════════════════
+async function api(endpoint, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(API_BASE + endpoint, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Server error');
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='register')));
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  hideMessages();
+}
+
+function showError(msg) { const e=document.getElementById('error-display'); e.textContent=msg; e.style.display='block'; document.getElementById('success-display').style.display='none'; }
+function showSuccess(msg) { const e=document.getElementById('success-display'); e.textContent=msg; e.style.display='block'; document.getElementById('error-display').style.display='none'; }
+function hideMessages() { document.getElementById('error-display').style.display='none'; document.getElementById('success-display').style.display='none'; }
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-password').value;
+  if (!email || !pass) { showError('Please fill in all fields.'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.querySelector('span').textContent = 'Signing in...';
+  try {
+    const data = await api('/api/auth/login', 'POST', { email, password: pass });
+    state.token = data.token;
+    localStorage.setItem('vs_token', data.token);
+    enterApp(data.user);
+  } catch (err) {
+    showError(err.message || 'Login failed. Try demo@votesmart.edu / demo123');
+  }
+  btn.disabled = false; btn.querySelector('span').textContent = 'Sign In to VoteSmart →';
+}
+
+async function handleRegister() {
+  const first = document.getElementById('reg-first').value.trim();
+  const last = document.getElementById('reg-last').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-password').value;
+  const role = document.getElementById('reg-role').value;
+  if (!first || !last || !email || !pass) { showError('Please fill in all fields.'); return; }
+  if (pass.length < 6) { showError('Password must be at least 6 characters.'); return; }
+  const btn = document.getElementById('register-btn');
+  btn.disabled = true; btn.querySelector('span').textContent = 'Creating account...';
+  try {
+    const data = await api('/api/auth/register', 'POST', { first_name: first, last_name: last, email, password: pass, role });
+    state.token = data.token;
+    localStorage.setItem('vs_token', data.token);
+    enterApp(data.user);
+  } catch (err) {
+    showError(err.message || 'Registration failed.');
+  }
+  btn.disabled = false; btn.querySelector('span').textContent = 'Create My Account →';
+}
+
+function enterAsGuest() {
+  state.token = null;
+  enterApp({ first_name: 'Guest', last_name: '', email: 'guest', role: 'citizen' });
+}
+
+function enterApp(user) {
+  state.user = user;
+  document.getElementById('signin-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'block';
+  const name = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+  document.getElementById('user-name-display').textContent = name;
+  document.getElementById('welcome-name').textContent = user.first_name;
+  document.getElementById('user-avatar').textContent = user.first_name[0].toUpperCase();
+  initGlossary();
+  loadProgress();
+  showToast(`Welcome, ${user.first_name}! 🎉`);
+}
+
+async function handleLogout() {
+  if (state.token) {
+    try { await api(`/api/auth/logout?token=${state.token}`, 'POST'); } catch(e) {}
+  }
+  state.token = null; state.user = null;
+  localStorage.removeItem('vs_token');
+  document.getElementById('app-page').style.display = 'none';
+  document.getElementById('signin-page').style.display = 'flex';
+}
+
+// Auto-login if token exists
+async function tryAutoLogin() {
+  const token = localStorage.getItem('vs_token');
+  if (!token) return;
+  try {
+    const user = await api(`/api/auth/me?token=${token}`);
+    state.token = token;
+    enterApp(user);
+  } catch(e) {
+    localStorage.removeItem('vs_token');
+  }
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function showView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + viewId).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(l => l.classList.remove('active'));
+  if (viewId === 'leaderboard') loadLeaderboard();
+}
+
+// ══════════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════════
+async function sendMessage(quickText) {
+  const input = document.getElementById('chat-input');
+  const msg = quickText || input.value.trim();
+  if (!msg) return;
+  if (!quickText) { input.value = ''; input.style.height = 'auto'; }
+
+  showView('assistant');
+  appendMessage('user', msg);
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  showTyping();
+
+  try {
+    let reply;
+    if (state.token) {
+      // Use backend API
+      const data = await api('/api/chat', 'POST', { message: msg, token: state.token });
+      reply = data.response;
+    } else {
+      // Guest: use local engine
+      await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
+      reply = localCivicBot(msg);
+    }
+    hideTyping();
+    appendMessage('ai', reply);
+    loadProgress();
+  } catch (err) {
+    hideTyping();
+    appendMessage('ai', '⚠️ Could not connect to the backend server. Make sure it\'s running at ' + API_BASE);
+  }
+
+  btn.disabled = false; btn.innerHTML = '➤';
+}
+
+function quickAsk(text) { showView('assistant'); setTimeout(() => sendMessage(text), 100); }
+
+function appendMessage(role, text) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  const avatarText = role === 'ai' ? '🏛' : (state.user ? state.user.first_name[0] : 'U');
+  div.innerHTML = `<div class="msg-avatar ${role}">${avatarText}</div><div><div class="msg-bubble">${formatMd(text)}</div><div class="msg-time">${now}</div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function formatMd(text) {
+  return text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>');
+}
+
+let typingEl = null;
+function showTyping() {
+  const c = document.getElementById('chat-messages');
+  typingEl = document.createElement('div');
+  typingEl.className = 'message ai'; typingEl.id = 'typing-indicator';
+  typingEl.innerHTML = `<div class="msg-avatar ai">🏛</div><div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+  c.appendChild(typingEl); c.scrollTop = c.scrollHeight;
+}
+function hideTyping() { const el = document.getElementById('typing-indicator'); if(el) el.remove(); }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+
+// Local fallback for guests
+function localCivicBot(msg) {
+  const m = msg.toLowerCase();
+  if (['hello','hi','hey'].some(t=>m.includes(t))) return "Hello! 👋 I'm CivicBot! Ask me about voter registration, the Electoral College, voting rights, primaries, gerrymandering, or any election topic!";
+  if (m.includes('register')) return "**Voter Registration** ✅\n\nVisit **vote.gov** to register online, by mail, or at your DMV. Requirements: U.S. citizen, 18+ on Election Day, state residency. Deadlines are usually 15–30 days before election day!";
+  if (m.includes('electoral college')) return "**Electoral College** 🏛️\n\n538 total electoral votes. A candidate needs **270 to win**. Each state gets votes equal to its Congressional seats. Most states use winner-take-all. Created in 1787 as a compromise between small and large states.";
+  if (m.includes('gerrymander')) return "**Gerrymandering** 🗺️\n\nManipulating district boundaries for partisan advantage. Two tactics: **Packing** (concentrating opponents into one district) and **Cracking** (splitting opponents across many districts). State legislatures draw maps after each Census.";
+  if (m.includes('voting right')) return "**Voting Rights** ✊\n\n15th Amendment (1870): Cannot deny vote by race. 19th Amendment (1920): Women's right to vote. Voting Rights Act (1965): Banned literacy tests. 26th Amendment (1971): Voting age lowered to 18.";
+  if (m.includes('primary') || m.includes('caucus')) return "**Primaries & Caucuses** 🏁\n\nParties use these to pick their candidates. **Primary** = secret ballot. **Caucus** = public group vote. Open primaries allow any voter; closed primaries restrict to party members. Winners earn delegates to the national convention.";
+  return "Great question! 🏛️ I can explain: voter registration, Electoral College, voting rights history, primaries vs caucuses, gerrymandering, campaign finance, Congress, or election types. What interests you most?";
+}
+
+// ══════════════════════════════════════════════
+// QUIZ DATA
+// ══════════════════════════════════════════════
+const QUIZZES = {
+  basics: [
+    {q:'What is the minimum voting age in U.S. federal elections?',opts:['16','17','18','21'],correct:2,exp:'The 26th Amendment (1971) lowered the voting age to 18.'},
+    {q:'How often is the U.S. President elected?',opts:['Every 2 years','Every 4 years','Every 5 years','Every 6 years'],correct:1,exp:'Presidential elections are held every four years, established by Article II of the Constitution.'},
+    {q:'What does "incumbent" mean in an election?',opts:['A new candidate','The current officeholder seeking re-election','An undecided voter','A campaign manager'],correct:1,exp:'An incumbent is the current holder of a political office who is running for re-election.'},
+    {q:'Which amendment gave women the right to vote?',opts:['13th','15th','19th','24th'],correct:2,exp:'The 19th Amendment, ratified in 1920, granted women the constitutional right to vote.'},
+    {q:'What is a "primary election"?',opts:['The most important election','An election to select a party\'s candidate','A local city election','The first election ever held'],correct:1,exp:'A primary election determines which candidate will represent a political party in the general election.'},
+    {q:'What is a "polling place"?',opts:['A place to watch results on TV','Where voters cast ballots','Party headquarters','Where candidates debate'],correct:1,exp:'A polling place is the location where voters go to cast their ballots on Election Day.'},
+    {q:'What does "bipartisan" mean?',opts:['Supporting one party only','Involving two political parties','Having no affiliation','Opposing all parties'],correct:1,exp:'Bipartisan refers to cooperation between the two major political parties.'},
+    {q:'What is a "write-in" candidate?',opts:['A candidate who writes books','One whose name voters write in themselves','A journalist running for office','One who campaigns by mail'],correct:1,exp:'A write-in candidate is not on the official ballot; voters must write in their name.'},
+    {q:'Which branch of government primarily conducts elections?',opts:['Executive','Legislative','Judicial','States, primarily'],correct:3,exp:'Elections are primarily administered by individual states, not the federal government.'},
+    {q:'What is a "ballot"?',opts:['A political speech','The paper or device used to cast a vote','A voter ID card','A campaign poster'],correct:1,exp:'A ballot is the mechanism used by voters to record their choices in an election.'}
+  ],
+  process: [
+    {q:'What is the purpose of voter registration?',opts:['To pay a voting fee','To verify eligibility and maintain voter rolls','To join a political party','To receive a voter ID only'],correct:1,exp:'Voter registration verifies eligibility, prevents duplicate voting, and helps officials prepare.'},
+    {q:'What is an "absentee ballot"?',opts:['A ballot for forgetful voters','A ballot cast when a voter cannot go in person','A blank ballot','A discarded ballot'],correct:1,exp:'An absentee ballot allows eligible voters to cast votes by mail when they cannot vote in person.'},
+    {q:'How many Electoral College votes are needed to win the presidency?',opts:['218','270','300','538'],correct:1,exp:'A candidate needs 270 of the 538 total electoral votes to win.'},
+    {q:'What is "early voting"?',opts:['Voting as a teenager','Casting your ballot before Election Day','Predicting the winner early','Voting in January'],correct:1,exp:'Early voting allows registered voters to cast ballots before Election Day at designated locations.'},
+    {q:'What is a "swing state"?',opts:['A state with swing music history','A state that could be won by either major party','The state with most electoral votes','A state that always votes the same'],correct:1,exp:'A swing state is one where neither major party has an overwhelming advantage.'},
+    {q:'What happens if no presidential candidate wins 270 Electoral College votes?',opts:['Current president stays','The House decides','A new election is held','The Senate votes'],correct:1,exp:'Per the 12th Amendment, if no candidate wins 270 votes, the House of Representatives selects the President.'},
+    {q:'What is a "precinct"?',opts:['A police station','The smallest administrative unit for elections','A type of ballot measure','Campaign headquarters'],correct:1,exp:'A precinct is the smallest geographical unit used in organizing elections.'},
+    {q:'What is the purpose of an exit poll?',opts:['To count official votes','To survey voters as they leave polling places','To check voters exited properly','To verify voter ID'],correct:1,exp:'Exit polls survey voters to gather data about voting patterns and gauge election results.'},
+    {q:'What law requires voter registration at DMV offices?',opts:['Voting Rights Act','National Voter Registration Act','Help America Vote Act','Civil Rights Act'],correct:1,exp:'The National Voter Registration Act of 1993 (Motor Voter Act) requires registration at DMVs.'},
+    {q:'What is the Electoral College?',opts:['A university for politicians','A group of 538 electors who formally elect the President','The system for electing Congress','A voter education program'],correct:1,exp:'The Electoral College is a body of 538 electors established by the Constitution to elect the President.'}
+  ],
+  history: [
+    {q:'What did the Voting Rights Act of 1965 primarily do?',opts:['Gave women the right to vote','Outlawed discriminatory practices like literacy tests','Lowered the voting age','Established the Electoral College'],correct:1,exp:'The Voting Rights Act banned discriminatory voting practices targeting Black voters in the South.'},
+    {q:'Which amendment banned poll taxes in federal elections?',opts:['15th','19th','22nd','24th'],correct:3,exp:'The 24th Amendment (1964) abolished poll taxes in federal elections.'},
+    {q:'The 26th Amendment lowering the voting age was partly due to arguments about?',opts:['Taxes','The Vietnam War draft','Women\'s rights','The Civil Rights Movement'],correct:1,exp:'Eighteen-year-olds old enough to be drafted to Vietnam deserved a voice in electing leaders.'},
+    {q:'Which president signed the Voting Rights Act of 1965?',opts:['John F. Kennedy','Richard Nixon','Lyndon B. Johnson','Jimmy Carter'],correct:2,exp:'President Lyndon B. Johnson signed the Voting Rights Act on August 6, 1965.'},
+    {q:'In what year were U.S. Senators first directly elected by voters?',opts:['1789','1868','1913','1932'],correct:2,exp:'The 17th Amendment (1913) established direct election of U.S. Senators by popular vote.'},
+    {q:'The 2000 presidential election was decided by the Supreme Court case?',opts:['Marbury v. Madison','Bush v. Gore','Citizens United v. FEC','Reynolds v. Sims'],correct:1,exp:'Bush v. Gore (2000) halted the Florida recount, effectively deciding the election for George W. Bush.'},
+    {q:'What was the first U.S. presidential election where women could vote nationwide?',opts:['1916','1920','1924','1928'],correct:1,exp:'After the 19th Amendment was ratified in August 1920, women voted nationally for the first time that November.'},
+    {q:'The 15th Amendment (1870) prohibited denying the vote based on?',opts:['Age','Gender','Race, color, or previous servitude','Property ownership'],correct:2,exp:'The 15th Amendment prohibited denying the right to vote based on race, color, or previous condition of servitude.'},
+    {q:'What was the "suffrage" movement primarily focused on?',opts:['Free speech','Women\'s right to vote','Abolition of slavery','Child labor laws'],correct:1,exp:'The suffrage movement fought for women\'s right to vote, culminating in the 19th Amendment in 1920.'},
+    {q:'Barack Obama made history in 2008 as?',opts:['The youngest president','The first African American president','The first senator to become president','The first Democratic president in 20 years'],correct:1,exp:'Barack Obama became the first African American elected President of the United States in 2008.'}
+  ],
+  advanced: [
+    {q:'What is gerrymandering?',opts:['Voting fraud','Manipulating district boundaries for partisan advantage','A type of campaign donation','Suppressing voter turnout'],correct:1,exp:'Gerrymandering is drawing electoral district boundaries to give a political party an unfair advantage.'},
+    {q:'What did Citizens United v. FEC (2010) primarily establish?',opts:['Expanded voter rights','Unlimited independent political spending by corporations is protected speech','A voter registration organization','Limits on campaign contributions'],correct:1,exp:'Citizens United ruled that political spending by corporations and groups is protected free speech.'},
+    {q:'What is "ranked choice voting"?',opts:['Voting multiple times','A system where voters rank candidates in order of preference','Letting popular candidates automatically win','Proportional representation only'],correct:1,exp:'In RCV, voters rank candidates 1st, 2nd, 3rd choice; lower-ranked candidates are eliminated until someone wins a majority.'},
+    {q:'What is a "super PAC"?',opts:['A very large political party','An independent organization that can raise unlimited funds but cannot coordinate directly with campaigns','A government election committee','A voter registration group'],correct:1,exp:'A Super PAC can raise unlimited money from corporations and individuals but cannot coordinate directly with candidates.'},
+    {q:'What does "one person, one vote" mean in law?',opts:['Everyone must vote','Each person\'s vote should carry roughly equal weight','Voting should be mandatory','Only citizens vote once per cycle'],correct:1,exp:'"One person, one vote" (Reynolds v. Sims, 1964) requires legislative districts to contain roughly equal populations.'},
+    {q:'What is "dark money" in politics?',opts:['Illegal contributions','Political spending from nonprofits that don\'t disclose donors','Foreign government funding','Stolen election funds'],correct:1,exp:'"Dark money" refers to funds from nonprofits not required to disclose their donors.'},
+    {q:'What is the key difference between a "caucus" and a "primary"?',opts:['They are the same','A caucus is a public group meeting; a primary is a private ballot vote','A caucus is federal; a primary is local','A primary selects the VP'],correct:1,exp:'A primary is a private ballot election; a caucus is a public gathering where voters openly discuss and vote in groups.'},
+    {q:'What is "voter suppression"?',opts:['Encouraging people not to vote','Strategies to discourage or prevent specific groups from voting','A type of voter fraud','Low rural voter turnout'],correct:1,exp:'Voter suppression refers to strategies that make it harder for eligible citizens, often targeting minority groups, to vote.'},
+    {q:'What is the role of the Federal Election Commission (FEC)?',opts:['To count election votes','To enforce campaign finance laws and disclosure requirements','To certify presidential results','To set election dates'],correct:1,exp:'The FEC enforces federal campaign finance laws, including disclosure requirements and contribution limits.'},
+    {q:'What is "proportional representation"?',opts:['Equal representation for all states','A system where parties gain seats proportional to their share of votes','The Electoral College system','Giving more votes to larger states'],correct:1,exp:'Proportional representation gives parties legislative seats proportional to their vote share — used in many countries but not for U.S. federal elections.'}
+  ]
+};
+
+let currentQuizData = [];
+
+function startQuiz(type) {
+  state.activeQuizKey = type;
+  currentQuizData = QUIZZES[type];
+  state.currentQuestion = 0; state.quizCorrect = 0;
+  document.getElementById('quiz-select').style.display = 'none';
+  document.getElementById('active-quiz').style.display = 'block';
+  document.getElementById('quiz-result').style.display = 'none';
+  loadQuestion();
+}
+
+function loadQuestion() {
+  const q = currentQuizData[state.currentQuestion];
+  const total = currentQuizData.length;
+  document.getElementById('q-number').textContent = `Question ${state.currentQuestion + 1} of ${total}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('quiz-progress-fill').style.width = `${(state.currentQuestion/total)*100}%`;
+  document.getElementById('next-btn').style.display = 'none';
+  const expBox = document.getElementById('explanation-box');
+  expBox.className = 'explanation-box'; expBox.textContent = '';
+  const optsList = document.getElementById('options-list');
+  optsList.innerHTML = '';
+  ['A','B','C','D'].forEach((letter, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="opt-letter">${letter}</span>${q.opts[i]}`;
+    btn.onclick = () => selectAnswer(i, q.correct, q.exp);
+    optsList.appendChild(btn);
+  });
+}
+
+function selectAnswer(selected, correct, explanation) {
+  document.querySelectorAll('.option-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    else if (i === selected) btn.classList.add('wrong');
+  });
+  const isCorrect = selected === correct;
+  if (isCorrect) state.quizCorrect++;
+  const expBox = document.getElementById('explanation-box');
+  expBox.className = `explanation-box ${isCorrect?'correct-exp':'wrong-exp'} show`;
+  expBox.textContent = (isCorrect ? '✓ Correct! ' : '✗ ') + explanation;
+  document.getElementById('next-btn').style.display = 'block';
+  if (state.currentQuestion >= currentQuizData.length - 1) document.getElementById('next-btn').textContent = 'See Results →';
+}
+
+function nextQuestion() {
+  state.currentQuestion++;
+  if (state.currentQuestion >= currentQuizData.length) showQuizResults();
+  else { loadQuestion(); document.getElementById('next-btn').textContent = 'Next Question →'; }
+}
+
+async function showQuizResults() {
+  document.getElementById('active-quiz').style.display = 'none';
+  const result = document.getElementById('quiz-result');
+  result.style.display = 'block';
+  const total = currentQuizData.length;
+  const pct = Math.round((state.quizCorrect / total) * 100);
+  document.getElementById('result-score').textContent = `${state.quizCorrect}/${total}`;
+  let emoji = '📚', msg = '';
+  if (pct >= 90) { emoji = '🏆'; msg = 'Outstanding! You\'re a true civic expert!'; }
+  else if (pct >= 70) { emoji = '🌟'; msg = 'Great work! You have solid knowledge of elections.'; }
+  else if (pct >= 50) { emoji = '📖'; msg = 'Good effort! Keep learning with our AI assistant.'; }
+  else { emoji = '💪'; msg = 'Keep going! Try again to improve your score!'; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-msg').textContent = msg;
+
+  // Save to backend
+  if (state.token) {
+    try {
+      await api('/api/quiz/result', 'POST', { token: state.token, quiz_type: state.activeQuizKey, score: state.quizCorrect, total });
+      showToast(`Score saved! ${pct}% — Check the leaderboard! 🏆`);
+      loadProgress();
+    } catch(e) { console.warn('Could not save quiz result'); }
+  }
+}
+
+function quitQuiz() {
+  document.getElementById('quiz-select').style.display = 'grid';
+  document.getElementById('active-quiz').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('next-btn').textContent = 'Next Question →';
+}
+
+function restartQuiz() { document.getElementById('quiz-result').style.display='none'; startQuiz(state.activeQuizKey); }
+
+// ══════════════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════════════
+async function loadLeaderboard() {
+  const body = document.getElementById('leaderboard-body');
+  body.innerHTML = '<p style="color:var(--mid);text-align:center;padding:20px">Loading...</p>';
+  try {
+    const data = await api('/api/quiz/leaderboard');
+    if (data.leaderboard.length === 0) { body.innerHTML = '<p style="color:var(--mid);text-align:center;padding:20px">No results yet. Take a quiz to appear here!</p>'; return; }
+    let html = '<table class="leaderboard-table"><thead><tr><th>Rank</th><th>Name</th><th>Best Score</th><th>Quizzes</th><th>Points</th></tr></thead><tbody>';
+    data.leaderboard.forEach((row, i) => {
+      const rankClass = i < 3 ? `rank-badge rank-${i+1}` : '';
+      const rankDisplay = i < 3 ? `<span class="${rankClass}">${['🥇','🥈','🥉'][i]}</span>` : `<span style="color:var(--mid);font-size:13px">#${i+1}</span>`;
+      html += `<tr><td>${rankDisplay}</td><td><strong>${row.name}</strong></td><td>${row.best_score}%</td><td>${row.quizzes_taken}</td><td>⭐ ${row.total_points}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    body.innerHTML = html;
+  } catch(e) { body.innerHTML = '<p style="color:var(--mid);text-align:center;padding:20px">⚠️ Could not load leaderboard. Make sure the backend is running.</p>'; }
+}
+
+// ══════════════════════════════════════════════
+// PROGRESS
+// ══════════════════════════════════════════════
+async function loadProgress() {
+  if (!state.token) return;
+  try {
+    const data = await api(`/api/progress?token=${state.token}`);
+    document.getElementById('stat-quizzes').textContent = data.quiz_count;
+    document.getElementById('stat-chats').textContent = data.chat_count;
+    document.getElementById('stat-score').textContent = data.best_score ? data.best_score + '%' : '—';
+    const pct = Math.min(100, data.quiz_count * 5 + data.chat_count * 2);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    const topics = Math.min(40, Math.floor(pct * 0.4));
+    document.getElementById('progress-label').textContent = `${topics} of 40 topics · ${data.total_points} pts`;
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// GLOSSARY
+// ══════════════════════════════════════════════
+const GLOSSARY_DATA = [
+  {term:'Absentee Ballot',def:'A ballot that allows a voter to vote without going to a polling place, usually cast by mail.',cat:'Voting'},
+  {term:'Ballot Measure',def:'A proposed law or constitutional amendment put directly to voters for approval or rejection.',cat:'Voting'},
+  {term:'Bicameral',def:'A legislature with two separate chambers, like the U.S. Congress (Senate and House).',cat:'Government'},
+  {term:'Bipartisan',def:'Involving cooperation between two major political parties.',cat:'Politics'},
+  {term:'Caucus',def:'A meeting of supporters of a party to select candidates or delegates.',cat:'Process'},
+  {term:'Citizens United',def:'A 2010 Supreme Court ruling that political spending by corporations is protected free speech.',cat:'Legal'},
+  {term:'Dark Money',def:'Funds from nonprofits that spend on elections without disclosing their donors.',cat:'Finance'},
+  {term:'Delegate',def:'A person authorized to represent others, especially at a party convention.',cat:'Process'},
+  {term:'Electoral College',def:'The 538 electors who formally elect the President and VP; 270 needed to win.',cat:'Process'},
+  {term:'Filibuster',def:'A Senate tactic to delay a vote by extending debate indefinitely.',cat:'Government'},
+  {term:'General Election',def:'The main election where voters choose between opposing party candidates for public office.',cat:'Process'},
+  {term:'Gerrymandering',def:'Drawing electoral district boundaries to give one party an unfair advantage.',cat:'Process'},
+  {term:'Incumbent',def:'The current holder of a political office who is running for re-election.',cat:'Politics'},
+  {term:'Independent',def:'A candidate or voter not affiliated with a major political party.',cat:'Politics'},
+  {term:'Lame Duck',def:'An elected official whose term is ending and who has limited political influence.',cat:'Politics'},
+  {term:'Midterm Election',def:'Elections held in the middle of a presidential term for Congress and other offices.',cat:'Process'},
+  {term:'Nonpartisan',def:'Not affiliated with or biased toward any political party.',cat:'Politics'},
+  {term:'Popular Vote',def:'The total number of votes cast by the general electorate.',cat:'Process'},
+  {term:'Precinct',def:'The smallest administrative unit for elections, determining a voter\'s polling place.',cat:'Process'},
+  {term:'Primary Election',def:'An election to determine who will represent a party in the upcoming general election.',cat:'Process'},
+  {term:'Ranked Choice Voting',def:'A system where voters rank candidates by preference; if no majority, lower candidates are eliminated.',cat:'Systems'},
+  {term:'Redistricting',def:'The process of redrawing electoral district boundaries, usually after each Census.',cat:'Process'},
+  {term:'Runoff Election',def:'A second election held when no candidate receives the required majority in the first.',cat:'Process'},
+  {term:'Super PAC',def:'An independent organization that can raise unlimited funds but cannot coordinate directly with campaigns.',cat:'Finance'},
+  {term:'Swing State',def:'A state where neither major party dominates, making its electoral votes highly contested.',cat:'Politics'},
+  {term:'Term Limit',def:'A restriction on how many terms an elected official may serve.',cat:'Government'},
+  {term:'Voter Suppression',def:'Strategies used to discourage or prevent eligible voters from voting.',cat:'Rights'},
+  {term:'Voting Rights Act',def:'The 1965 law that prohibited discriminatory voting practices such as literacy tests.',cat:'Rights'},
+  {term:'Write-in Candidate',def:'A candidate not on the official ballot whose name voters must write in.',cat:'Process'}
+];
+
+let activeFilter = '';
+function initGlossary() {
+  const letters = [...new Set(GLOSSARY_DATA.map(g=>g.term[0].toUpperCase()))].sort();
+  const filterEl = document.getElementById('letter-filter');
+  filterEl.innerHTML = '<button class="letter-btn active" onclick="filterByLetter(\'\',this)">All</button>';
+  letters.forEach(l => { filterEl.innerHTML += `<button class="letter-btn" onclick="filterByLetter('${l}',this)">${l}</button>`; });
+  renderGlossary(GLOSSARY_DATA);
+}
+function filterByLetter(letter, btn) {
+  activeFilter = letter;
+  document.querySelectorAll('.letter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyGlossaryFilters(document.getElementById('glossary-search').value.toLowerCase());
+}
+function filterGlossary() { applyGlossaryFilters(document.getElementById('glossary-search').value.toLowerCase()); }
+function applyGlossaryFilters(search) {
+  let filtered = GLOSSARY_DATA;
+  if (activeFilter) filtered = filtered.filter(g=>g.term[0].toUpperCase()===activeFilter);
+  if (search) filtered = filtered.filter(g=>g.term.toLowerCase().includes(search)||g.def.toLowerCase().includes(search));
+  renderGlossary(filtered);
+}
+function renderGlossary(items) {
+  const el = document.getElementById('glossary-list');
+  if (!items.length) { el.innerHTML='<p style="color:var(--mid);grid-column:1/-1;text-align:center;padding:30px">No terms found.</p>'; return; }
+  el.innerHTML = items.map(g=>`<div class="glossary-item" onclick="quickAsk('Tell me more about ${g.term} in the context of elections.')"><div class="term-category">${g.cat}</div><h4>${g.term}</h4><p>${g.def}</p></div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+tryAutoLogin();
+</script>
+</body>
+</html>
