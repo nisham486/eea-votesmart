@@ -610,15 +610,6 @@ def get_platform_stats():
 # ─────────────────────────────────────────
 # STARTUP
 # ─────────────────────────────────────────
-@app.on_event("startup")
-def startup():
-    init_db()
-    # Serve frontend static files
-    if os.path.exists("static"):
-        app.mount("/static", StaticFiles(directory="static"), name="static")
-    print("🚀 VoteSmart backend running!")
-    print("📖 API docs: http://localhost:8000/docs")
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
